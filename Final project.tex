@@ -1,0 +1,158 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\title{A layman's introduction to random forest and gradient boost}
+\author{Yinan Zhu}
+\begin{document}
+\section{Introduction}
+In this essay we consider two models based on regression trees: gradient boost and random forest. We first describe how a single regression tree. Then we introduce two well-known ideas in machine learning, namely bootstrap+bagging and additive models and how they are combined with regression tree to give rise to random forrest and gradient boost respectively. At the end, we outlined the experiment on data we conducted, which will be presented in another file. This article serves as a very practical introduction to the two methods. We will focus on how they are ued in practice and be very book-keeping on the theory behind them.
+
+\section{Regression tree}
+Tree-based methods partition the feature space into a set of rectanggles and fit a simple model in each one. They are conceptually simple yet powerful tools.
+
+Given a region $R$ which is a subset of domain $D$, define function $I_R$ on $D$ 
+\begin{eqnarray}
+I_R(p)= \left\{
+\begin{array}{rl}
+1 & \textrm{if } p \in R,\\
+0 & \textrm{if } p \notin R
+\end{array} \right.\nonumber
+\end{eqnarray}
+
+Consider a regression problem with a collection of responses $y$ and features $x\in \mathbb{R}^p$. A regression tree consists of a partition of $\mathbb{R}^p$ $R_1, R_2,\cdots,R_m$ and a prediction of $y$ for each region in the partition: $c_1,c_2,\cdots,c_m$. Formally
+\[
+\hat{y}=\sum_{i=1}^m c_iI_{R_i}(x)
+\]
+
+We will recursively define the process of growing a tree. Suppose we already have a partition $R_1,\cdots, R_{m-1}$. On each of the region $R_i$, we want to further split the region into two parts: $R_{i1}^{js}=\{x|x_j<s,x\in R_i\}$ and $R_{i2}^{js}=\{x|x_j>=s,x\in R_i\}$. Such a split has two unfixed parameters: which feature we are going to split over $(j)$ and where we are goint to split over $(s)$. We select this value by achieving the best local result in the target function.
+\[
+(j,s)=\textrm{arg min}_{j,s}[\textrm{min}_{c_1}\sum_{x_k\in R_{i1}^{js}}(y_k-c_1)^2+\textrm{min}_{c_2}\sum_{x_k\in R_{i2}^{js}}(y_k-c_2)^2]
+\]
+And $c_1, c_2$ will be the prediction for $R_{i1}^{js}$ and $R_{i2}^{js}$ respectively.
+
+In the case when we use the least square error as cost function, the above simplies to
+\[
+\textrm{arg min}_{j,s}[\sum_{x_k\in R_{i1}^{js}}(y_k-\bar{y}_{i1}^{js})^2+\sum_{x_k\in R_{i2}^{js}}(y_k-\bar{y}_{i2}^{js})^2]\nonumber
+\]
+Here $\bar{y}$ is the average of $y$ which belong to the region indicated by the subscripts of $\bar{y}$
+
+In the case when cost function is the absolute error. $\bar{y}$ is replaced by the median of $y$ in the corresponding region.
+
+Obviously a tree can overfit the data if we grow too many nodes. One regularization method is to first grow a relativelly large tree, then prune it. 
+
+We grow the tree until the number of nodes reach a fixed number. Call this tree $T_0$. Consider any subtree $T \subset T_0$ which can be realized by collapsing some of $T_0$'s nodes. Define cost function
+\[
+C(T)=\sum_{m=1}^{|T|}\sum_{x_i\in R_m}(y_i-\bar{y}_m)^2+\alpha|T|
+\]
+
+$|T|$ is the number of leaves of $T$ and $R_1, R_2,\cdots, R_m$ are the partition of $\mathbb{R}^p$ of the prediction model corresponding to $T$ (the regions represented by the leaves of $T$). $\alpha$ is a tunning parameter of model. 
+
+For any $\alpha$, we can find $T_\alpha=\textrm{arg min }C(T)$ through weakest link pruning: That is we succesively close the node of $T_0$ which produces the smallest increase pernode increase in $C(T)-\alpha|T|$ until we are left with one node. It can be shown that this sequence contains $T_\alpha$.
+\section{Random forest for regression tree}
+Suppose we want to fit a certain model on a training data. Bagging or bootstrap aggregation fits the model on a collection of bootstrap samples and average their prediction result. Bagging reduces the variance and maintain the same bias as a single model would have.
+
+Random forests is a modification of bagging that builds a large collection of de-correlated trees and average over them. The procedure can be described as:
+
+\begin{enumerate}
+\item
+Parameters: $B$, $N$, $J$, $d$, training data $\{y,x\}$
+\item
+For $b$ in $1\dots B$
+\begin{enumerate}
+\item
+Draw a bootstrap sample of size $N$ from the training data $\{y,x\}$
+\item
+Grow a tree $T_b$ with $J$ nodes with standard procedure on boostrapped data, with one modification: each time we split the node, we randomly pick $d$ direction in feature space $\mathbb{R}^p$ and use them rather than using the whole feature space. 
+\end{enumerate}
+\item
+Make prediction by $\frac{1}{B}\sum_{b=1}^BT_b(x)$
+\end{enumerate}
+
+We can see that due to the property of tree. Random forest has an additional layer of randomness in addition to booststrapped data set. That is we select different set of features as candidates each time we split the nodes.
+
+\section{Gradient boosting for regression tree}
+\subsection{Boosting for additive model}
+Boosting is a way of fitting an additive expansion in a set of elementary “basis” functions. The prediction is given by
+\[
+f(x)=\sum_{i=1}^MT(x;\gamma_i)
+\]
+where $T(;\gamma_i)$ are a basis functions with different tunning parameters. If applied to regression trees, $T$ are single tree and $\gamma_i$ are the partition ${R_j}$ and prediction for each region in the partition (for least square cost function, it's just average of $y$ for that region).
+
+In general, we can fit such model by "forward stagewise modeling". We sequentially add new basis functions to the expansion and achieve the minimal cost function by adjusting the parameters of the newly added model:
+\[
+\gamma_k=\textrm{arg min}_{\gamma_k^*}C(y-\sum_{i=1}^{k-1}T(x;\gamma_i),T(x;\gamma_k^*))
+\]
+
+\subsection{Gradient boosting}
+Forward stagewise boosting doesn the same thing in "space of functions" as the convex optimization does in "space of coefficients", indeed, various techniques for the latter can be applied to the former. The mirror of gradient descent and line search in convex optimization here is gradient boosting.
+
+Consider the derivative
+\[
+g_k=\frac{\partial C(y,f)}{\partial f}|_{f=\sum_{i=1}^{k-1}T(x;\gamma_i)}
+\]
+
+The difference between this and gradient descent, is that we cannot find a new model with exactly the same direction as $g_k$, therefore we solve the optimal problem first:
+\[
+\gamma_k=\textrm{arg min}_{\gamma_k^*}||-g_k-T(x;\gamma_k^*)||_2
+\]
+
+and then do line search to find the optimal step size on the approximal direction of gradient:
+\[
+\rho_k=\textrm{arg min}_{\rho_k}C(y,\sum_{i=1}^{k-1}\rho_iT(x;\gamma_i)+\rho_k^*T(x;\gamma_k))
+\]
+
+If $C$ is the least square function, then trivially $-g_k=y-\sum_{i=1}^{k-1}$ is just the residue of current model. For absolute error cost function $g_k=-\textrm{sign}(y-\sum_{i=1}^{k-1})$, which is the signs of residue. Gradient boosting make it convenient to generalize to classification problem or regression problem with other cost function.
+
+As with any model, boosting needs to be regularized. Typical method includes restricting the number of additive models used to be less than $M$. Another is adding a shrinkage factor when adding new models $\nu$:
+\[
+f\rightarrow f+\nu\rho_kT( ;\gamma_k)
+\]
+\subsection{Applying to regression trees}
+The general procedure of gradient boosting almost directly applies to the regression tree. Due to the piecewise constant property of regression tree as a function, we see that picking the step size and picking the prediction for each region of tree actually overlap each other and therefore we can combine them togather. To specify, the whole procedure is
+\begin{enumerate}
+\item
+Parameters $M$, $J$, training data $y,x$
+\item
+For $k$ in $1\dots M$:
+\begin{enumerate}
+\item
+$g_k=\frac{\partial C(y,f)}{\partial f}|_{f=\sum_{i=1}^{k-1}T_i(x)}$
+\item
+Fit a regression tree with $J$ leaves $T_k^\prime$ to the target $g_k$, take its leaves: $R_{1k},\dots, R_{Jk}$ (but not coefficients)
+\item
+For $j$ in $1,\dots,J$: compute $c_l=\textrm{arg min}_{c}C(y,\sum_{i=1}^{k-1}T_k(x_m)+c)|_{R_{jk}}$
+\item
+$T_k=\sum_{j=1}^Jc_jI(R_{jk})$
+\end{enumerate}
+\item
+Predict by $\sum_{i=1}^MT_i(x)$
+\end{enumerate}
+\section{Experiments on household appliances energy consumption data}
+We apply gradient boosting and random forest on the data "Appliances energy prediction" on UCI machine learning repository provided by Luis Candanedo from University of Mons. This data consists of the energy consumption by the appliances of a house in Stambruges, Belgium measured every 10 minutes from 1/11/2016 to 5/27/2016, along with time and weather data at the time of measurement.
+
+For more detail, the reader should refer to the .ipynb file in the directory. The outline of the experiments goes as follows:
+\begin{enumerate}
+\item
+Data introduction and introduction
+\item
+An analysis of impact of different parameters on the performance of models.
+\begin{enumerate}
+\item
+For gradient boost: shrinkage factor, maximum terminal nodes allowed in each tree, number of features selected for nodes splitting.
+\item
+For random forest: maximum terminal nodes allowed in each tree, number of features selected for nodes splitting
+\end{enumerate}
+\item
+Comparison and interpretation of results of two models at their best
+\item
+A combinational model by taking the weighted average of both models
+\end{enumerate}
+\section{Reference}
+\begin{enumerate}
+\item
+Greedy Function Approximation: A Gradient Boosting Machine, Jerome H. Friedman, IMS 1999 Reitz Lecture
+\item
+Data driven prediction models of energy use of appliances in a low-energy house, Luis M. Candanedo, Veronique Feldheim, Dominique Deramaix, Energy and Buildings 140 (2017) 81-97
+\item
+The Elements of Statistical Learning, Trevor Hastie, Robert Tibshirani, Jerome Friedman
+\end{enumerate}
+\end{document}
