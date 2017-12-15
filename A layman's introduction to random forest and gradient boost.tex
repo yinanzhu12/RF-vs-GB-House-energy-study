@@ -3,8 +3,11 @@
 \title{A layman's introduction to random forest and gradient boost}
 \author{Yinan Zhu}
 \begin{document}
+\maketitle
 \section{Introduction}
-In this essay we consider two models based on regression trees: gradient boost and random forest. We first describe how a single regression tree. Then we introduce two well-known ideas in machine learning, namely bootstrap+bagging and additive models and how they are combined with regression tree to give rise to random forrest and gradient boost respectively. At the end, we outlined the experiment on data we conducted, which will be presented in another file. This article serves as a very practical introduction to the two methods. We will focus on how they are ued in practice and be very book-keeping on the theory behind them.
+In this essay we consider two models based on regression trees: gradient boost and random forest. We first describe how a single regression tree works. Then we introduce two well-known ideas in machine learning, namely bootstrap+bagging and additive models and how they are combined with regression tree to give rise to random forrest and gradient boost respectively. At the end, we outlined the experiment on data we conducted, which will be presented in another file. 
+
+This article serves as a very practical introduction to the two methods. We will focus on how they are ued in practice and be very book-keeping on the theory behind them.
 
 \section{Regression tree}
 Tree-based methods partition the feature space into a set of rectanggles and fit a simple model in each one. They are conceptually simple yet powerful tools.
@@ -54,7 +57,7 @@ Random forests is a modification of bagging that builds a large collection of de
 
 \begin{enumerate}
 \item
-Parameters: $B$, $N$, $J$, $d$, training data $\{y,x\}$
+Input: Parameters $B$, $N$, $J$, $d$, training data $y,x$
 \item
 For $b$ in $1\dots B$
 \begin{enumerate}
@@ -75,7 +78,7 @@ Boosting is a way of fitting an additive expansion in a set of elementary “bas
 \[
 f(x)=\sum_{i=1}^MT(x;\gamma_i)
 \]
-where $T(;\gamma_i)$ are a basis functions with different tunning parameters. If applied to regression trees, $T$ are single tree and $\gamma_i$ are the partition ${R_j}$ and prediction for each region in the partition (for least square cost function, it's just average of $y$ for that region).
+where $T(;\gamma_i)$ are a basis functions with different tunning parameters. If applied to regression trees, $T$ are single tree and $\gamma_i$ are the partition ${R_j}$ and prediction for each region in the partition.
 
 In general, we can fit such model by "forward stagewise modeling". We sequentially add new basis functions to the expansion and achieve the minimal cost function by adjusting the parameters of the newly added model:
 \[
@@ -85,7 +88,7 @@ In general, we can fit such model by "forward stagewise modeling". We sequential
 \subsection{Gradient boosting}
 Forward stagewise boosting doesn the same thing in "space of functions" as the convex optimization does in "space of coefficients", indeed, various techniques for the latter can be applied to the former. The mirror of gradient descent and line search in convex optimization here is gradient boosting.
 
-Consider the derivative
+Suppose we already fit an additive model with $k-1$ sub models $T(;\gamma_1), \dots, T(;\gamma_{k-1})$ and want to add $T(;\gamma_k)$. Consider the derivative
 \[
 g_k=\frac{\partial C(y,f)}{\partial f}|_{f=\sum_{i=1}^{k-1}T(x;\gamma_i)}
 \]
@@ -97,7 +100,12 @@ The difference between this and gradient descent, is that we cannot find a new m
 
 and then do line search to find the optimal step size on the approximal direction of gradient:
 \[
-\rho_k=\textrm{arg min}_{\rho_k}C(y,\sum_{i=1}^{k-1}\rho_iT(x;\gamma_i)+\rho_k^*T(x;\gamma_k))
+\rho_k=\textrm{arg min}_{\rho_k}C(y,\sum_{i=1}^{k-1}T(x;\gamma_i)+\rho_k^*T(x;\gamma_k))
+\]
+
+The new additive model is therefore:
+\[
+\sum_{i=1}^{k-1}T(;\gamma_i)\rightarrow \sum_{i=1}^{k-1}T(;\gamma_i)+\rho_kT(;\gamma_k)
 \]
 
 If $C$ is the least square function, then trivially $-g_k=y-\sum_{i=1}^{k-1}$ is just the residue of current model. For absolute error cost function $g_k=-\textrm{sign}(y-\sum_{i=1}^{k-1})$, which is the signs of residue. Gradient boosting make it convenient to generalize to classification problem or regression problem with other cost function.
@@ -110,7 +118,7 @@ f\rightarrow f+\nu\rho_kT( ;\gamma_k)
 The general procedure of gradient boosting almost directly applies to the regression tree. Due to the piecewise constant property of regression tree as a function, we see that picking the step size and picking the prediction for each region of tree actually overlap each other and therefore we can combine them togather. To specify, the whole procedure is
 \begin{enumerate}
 \item
-Parameters $M$, $J$, training data $y,x$
+Input: Parameters $M$, $J$, training data $y,x$
 \item
 For $k$ in $1\dots M$:
 \begin{enumerate}
@@ -127,25 +135,9 @@ $T_k=\sum_{j=1}^Jc_jI(R_{jk})$
 Predict by $\sum_{i=1}^MT_i(x)$
 \end{enumerate}
 \section{Experiments on household appliances energy consumption data}
-We apply gradient boosting and random forest on the data "Appliances energy prediction" on UCI machine learning repository provided by Luis Candanedo from University of Mons. This data consists of the energy consumption by the appliances of a house in Stambruges, Belgium measured every 10 minutes from 1/11/2016 to 5/27/2016, along with time and weather data at the time of measurement.
+We apply gradient boosting and random forest on the data "Appliances energy prediction" on UCI machine learning repository provided by Luis Candanedo from University of Mons. This data consists of the energy consumption by the appliances of a house in Stambruges, Belgium measured every 10 minutes from 1/11/2016 to 5/27/2016.
 
-For more detail, the reader should refer to the .ipynb file in the directory. The outline of the experiments goes as follows:
-\begin{enumerate}
-\item
-Data introduction and introduction
-\item
-An analysis of impact of different parameters on the performance of models.
-\begin{enumerate}
-\item
-For gradient boost: shrinkage factor, maximum terminal nodes allowed in each tree, number of features selected for nodes splitting.
-\item
-For random forest: maximum terminal nodes allowed in each tree, number of features selected for nodes splitting
-\end{enumerate}
-\item
-Comparison and interpretation of results of two models at their best
-\item
-A combinational model by taking the weighted average of both models
-\end{enumerate}
+For more detail, the reader should refer to the .ipynb file in the directory.
 \section{Reference}
 \begin{enumerate}
 \item
@@ -154,5 +146,7 @@ Greedy Function Approximation: A Gradient Boosting Machine, Jerome H. Friedman, 
 Data driven prediction models of energy use of appliances in a low-energy house, Luis M. Candanedo, Veronique Feldheim, Dominique Deramaix, Energy and Buildings 140 (2017) 81-97
 \item
 The Elements of Statistical Learning, Trevor Hastie, Robert Tibshirani, Jerome Friedman
+\item
+BART: Bayesian Additive Regression Trees, Hugh A. Chipman, Edward I. George and Robert E. McCulloch, arxiv: 0806.3286
 \end{enumerate}
 \end{document}
