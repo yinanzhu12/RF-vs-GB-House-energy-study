@@ -3,9 +3,9 @@ Hi welcome
 
 If you only have 30 seconds to read this project, here it goes
 
-1. Some theory and algorithm in "A layman's introduction to random forest and gradient boost.pdf". Maybe too easy for you
+1. There are some theory stuff in "A layman's introduction to random forest and gradient boost.pdf". Maybe too easy for you
 
-2. Lots of code and picture in "House energy study.ipynb"
+2. There are lots of code and picture in "House energy study.ipynb"
 
 3. For gradient boost, you should restrict each trees toughly and wait for the model to improve after 5000+ steps. For random forest, feel free to make each tree overfit, because those overfit will be "averaged out".
 
